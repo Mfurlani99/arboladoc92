@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Planilla de Inspección de Árboles – GCBA</title>
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<style>
+  :root {
+    --gcba-yellow: #F5BE00;
+    --gcba-dark: #1A1A2E;
+    --gcba-green: #2D6A4F;
+    --gcba-green-light: #52B788;
+    --gcba-bg: #F4F7F2;
+    --gcba-white: #FFFFFF;
+    --gcba-border: #C8D8C0;
+    --gcba-text: #1C2B1A;
+    --gcba-label: #3A5240;
+    --gcba-section-bg: #E8F0E4;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(45,106,79,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--gcba-bg);
+    color: var(--gcba-text);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--gcba-dark);
+    color: white;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 3px 16px rgba(0,0,0,0.25);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+  }
+  .header-logo {
+    background: var(--gcba-yellow);
+    color: var(--gcba-dark);
+    font-weight: 900;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 5px 8px;
+    border-radius: 5px;
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+  .header-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+  }
+  .header-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 400;
+  }
+
+  /* PROGRESS */
+  .progress-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.15);
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--gcba-yellow);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* FORM CONTAINER */
+  .form-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* SECTION CARD */
+  .section-card {
+    background: var(--gcba-white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .section-header {
+    background: var(--gcba-green);
+    color: white;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-header .icon {
+    font-size: 16px;
+    opacity: 0.85;
+  }
+  .section-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* META INFO (fecha, aviso, arme) */
+  .meta-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .meta-row.triple {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  /* FORM FIELDS */
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field-group label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--gcba-label);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .field-group input[type="text"],
+  .field-group input[type="date"],
+  .field-group input[type="number"],
+  .field-group textarea,
+  .field-group select {
+    width: 100%;
+    border: 1.5px solid var(--gcba-border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--gcba-text);
+    background: #FAFCF9;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field-group input:focus,
+  .field-group textarea:focus,
+  .field-group select:focus {
+    outline: none;
+    border-color: var(--gcba-green-light);
+    box-shadow: 0 0 0 3px rgba(82,183,136,0.18);
+    background: white;
+  }
+  .field-group textarea {
+    min-height: 90px;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.5;
+  }
+
+  /* ROW LAYOUT */
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+
+  /* CHECKBOX GROUPS */
+  .check-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 2px 0;
+  }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .check-item input[type="checkbox"],
+  .check-item input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--gcba-green);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .check-item span {
+    font-size: 13px;
+    color: var(--gcba-text);
+    user-select: none;
+  }
+
+  /* RADIO INLINE */
+  .radio-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .radio-inline .ril {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .radio-inline label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gcba-label);
+    margin-right: 2px;
+  }
+
+  /* CAVIDADES TABLE */
+  .cav-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .cav-table th, .cav-table td {
+    border: 1.5px solid var(--gcba-border);
+    padding: 7px 10px;
+    text-align: center;
+  }
+  .cav-table th {
+    background: var(--gcba-section-bg);
+    font-weight: 600;
+    color: var(--gcba-label);
+    font-size: 12px;
+  }
+  .cav-table td:first-child {
+    text-align: left;
+    font-weight: 500;
+  }
+
+  /* SUBSECTION LABEL */
+  .sub-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gcba-green);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 0 2px;
+    border-bottom: 1.5px solid var(--gcba-border);
+    margin-bottom: 4px;
+  }
+
+  /* SIGNATURE CANVAS */
+  .sig-wrap {
+    border: 2px dashed var(--gcba-border);
+    border-radius: 8px;
+    background: #FAFCF9;
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+  }
+  .sig-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 160px;
+    cursor: crosshair;
+    touch-action: none;
+  }
+  .sig-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    color: #B0C4B0;
+    font-size: 13px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .sig-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.2px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-clear {
+    background: #FEE2E2;
+    color: #B91C1C;
+    flex: 1;
+  }
+  .btn-clear:hover { background: #FECACA; }
+
+  .btn-primary {
+    background: var(--gcba-green);
+    color: white;
+    flex: 2;
+    font-size: 14px;
+    padding: 12px 20px;
+  }
+  .btn-primary:hover { background: #235C40; }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-reset {
+    background: var(--gcba-section-bg);
+    color: var(--gcba-label);
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+  .btn-reset:hover { background: var(--gcba-border); }
+
+  /* DOWNLOAD AREA */
+  .action-bar {
+    background: var(--gcba-white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* IMAGE UPLOAD */
+  .img-upload-area {
+    border: 2px dashed var(--gcba-border);
+    border-radius: 8px;
+    background: #FAFCF9;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .img-upload-area:hover { border-color: var(--gcba-green-light); background: #F0F7F3; }
+  .img-upload-area input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .img-upload-icon { font-size: 36px; margin-bottom: 8px; }
+  .img-upload-text { font-size: 13px; color: var(--gcba-label); font-weight: 500; }
+  .img-upload-sub { font-size: 11px; color: #8FAB8A; margin-top: 3px; }
+  .img-preview {
+    width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    border-radius: 6px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--gcba-green);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease;
+    z-index: 9999;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* RESPONSIVE */
+  @media (max-width: 420px) {
+    .row-4 { grid-template-columns: 1fr 1fr; }
+    .row-3 { grid-template-columns: 1fr 1fr; }
+    .meta-row.triple { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="header-logo">Buenos<br>Aires<br>Ciudad</div>
+    <div>
+      <div class="header-title">Planilla de Inspección de Árboles</div>
+      <div class="header-sub">Gobierno de la Ciudad Autónoma de Buenos Aires</div>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</header>
+
+<div class="form-wrap" id="mainForm">
+
+  <!-- META -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">📋</span> Datos del Informe</div>
+    <div class="section-body">
+      <div class="meta-row triple">
+        <div class="field-group">
+          <label>Fecha</label>
+          <input type="date" id="fecha">
+        </div>
+        <div class="field-group">
+          <label>Aviso N°</label>
+          <input type="text" id="aviso" placeholder="Ej: 12345">
+        </div>
+        <div class="field-group">
+          <label>ARME</label>
+          <input type="text" id="arme" placeholder="Código">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INFORMACIÓN DEL ÁRBOL -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">🌳</span> Información del Árbol</div>
+    <div class="section-body">
+      <div class="field-group">
+        <label>Especie botánica</label>
+        <input type="text" id="especie" placeholder="Ej: Tipuana tipu">
+      </div>
+      <div class="row-2">
+        <div class="field-group">
+          <label>Calle</label>
+          <input type="text" id="calle" placeholder="Nombre de la calle">
+        </div>
+        <div class="field-group">
+          <label>N° / Referencia</label>
+          <input type="text" id="nref" placeholder="Ej: 1234">
+        </div>
+      </div>
+      <div class="sub-label">Estado general</div>
+      <div class="check-group">
+        <label class="check-item">
+          <input type="checkbox" id="arbolSeco">
+          <span>🍂 Árbol seco</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" id="arbolSemiseco">
+          <span>🌿 Árbol semiseco</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARÁMETROS -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">📐</span> Parámetros Mecánicos y Sanitarios</div>
+    <div class="section-body">
+
+      <div class="row-3">
+        <div class="field-group">
+          <label>Altura (m)</label>
+          <input type="number" id="altura" placeholder="0.0" step="0.1" min="0">
+        </div>
+        <div class="field-group">
+          <label>D.A.P. (cm)</label>
+          <input type="number" id="dap" placeholder="0.0" step="0.1" min="0">
+        </div>
+        <div class="field-group">
+          <label>Inclinación</label>
+          <select id="inclinacion">
+            <option value="">—</option>
+            <option value="SI">SÍ</option>
+            <option value="NO">NO</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <div class="sub-label">Grado de inclinación</div>
+        <div class="check-group">
+          <label class="check-item"><input type="radio" name="gradoInclinacion" value="Mayor a 40°"><span>Mayor a 40°</span></label>
+          <label class="check-item"><input type="radio" name="gradoInclinacion" value="Menor a 40°"><span>Menor a 40°</span></label>
+        </div>
+      </div>
+
+      <div>
+        <div class="sub-label">Orientación de la inclinación</div>
+        <div class="check-group">
+          <label class="check-item"><input type="checkbox" id="oriCalle"><span>Hacia la calle</span></label>
+          <label class="check-item"><input type="checkbox" id="oriPropiedad"><span>Hacia la propiedad</span></label>
+          <label class="check-item"><input type="checkbox" id="oriVereda"><span>Hacia el largo de la vereda</span></label>
+        </div>
+      </div>
+
+      <div>
+        <div class="sub-label">Copa</div>
+        <div class="check-group">
+          <label class="check-item"><input type="checkbox" id="copaDesbalanceada"><span>Desbalanceada</span></label>
+          <label class="check-item"><input type="checkbox" id="copaDescopado"><span>Descopado</span></label>
+          <label class="check-item"><input type="checkbox" id="copaDescopBrot"><span>Descopado y brotado</span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FUSTE -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">🪵</span> Fuste</div>
+    <div class="section-body">
+
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="descortezamiento"><span>Descortezamiento</span></label>
+        <label class="check-item"><input type="checkbox" id="fructificaciones"><span>Fructificaciones fúngicas</span></label>
+        <label class="check-item"><input type="checkbox" id="codominanciasFuste"><span>Codominancias</span></label>
+        <label class="check-item"><input type="checkbox" id="chorreados"><span>Chorreados</span></label>
+      </div>
+
+      <div class="sub-label">Cavidades</div>
+      <table class="cav-table">
+        <thead>
+          <tr>
+            <th>Tamaño / Parte</th>
+            <th>Basal</th>
+            <th>Media</th>
+            <th>Alta</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Pequeñas</td>
+            <td><input type="checkbox" id="cavPeqBasal" style="width:18px;height:18px;accent-color:var(--gcba-green)"></td>
+            <td><input type="checkbox" id="cavPeqMedia" style="width:18px;height:18px;accent-color:var(--gcba-green)"></td>
+            <td><input type="checkbox" id="cavPeqAlta" style="width:18px;height:18px;accent-color:var(--gcba-green)"></td>
+          </tr>
+          <tr>
+            <td>Grandes</td>
+            <td><input type="checkbox" id="cavGrandBasal" style="width:18px;height:18px;accent-color:var(--gcba-green)"></td>
+            <td><input type="checkbox" id="cavGrandMedia" style="width:18px;height:18px;accent-color:var(--gcba-green)"></td>
+            <td><input type="checkbox" id="cavGrandAlta" style="width:18px;height:18px;accent-color:var(--gcba-green)"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="row-2">
+        <div class="field-group">
+          <label>Cavidad longitudinal en fuste (m)</label>
+          <input type="number" id="cavLong" placeholder="0.0" step="0.01" min="0">
+        </div>
+        <div class="field-group">
+          <label>Espesor pared remanente (cm)</label>
+          <input type="number" id="espPared" placeholder="0.0" step="0.1" min="0">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAÍCES -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">🌱</span> Raíces</div>
+    <div class="section-body">
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="raicesExpuestas"><span>Expuestas</span></label>
+      </div>
+      <div class="row-2">
+        <div class="field-group">
+          <label>Levanta vereda (m²)</label>
+          <input type="number" id="levantaVereda" placeholder="0.0" step="0.01" min="0">
+        </div>
+        <div class="field-group">
+          <label>Fisuras frente a propiedad</label>
+          <select id="fisuras">
+            <option value="">—</option>
+            <option value="SI">SÍ</option>
+            <option value="NO">NO</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAMAS -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">🌿</span> Ramas</div>
+    <div class="section-body">
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="ramaQuebradasFis"><span>Quebradas / Fisuradas</span></label>
+        <label class="check-item"><input type="checkbox" id="ramaSecas"><span>Secas / Secas en los ápices</span></label>
+        <label class="check-item"><input type="checkbox" id="ramaCavidades"><span>Con cavidades, tumores o cancros</span></label>
+        <label class="check-item"><input type="checkbox" id="ramaBajas"><span>Bajas</span></label>
+        <label class="check-item"><input type="checkbox" id="ramaTocones"><span>Tocones</span></label>
+        <label class="check-item"><input type="checkbox" id="ramaExcesivas"><span>Excesivas / Cruzadas</span></label>
+        <label class="check-item"><input type="checkbox" id="ramaInvasion"><span>Invasión de espacio aéreo</span></label>
+        <label class="check-item"><input type="checkbox" id="ramaMalAngulo"><span>Con mal ángulo de inserción</span></label>
+        <label class="check-item"><input type="checkbox" id="ramaCodominantes"><span>Codominantes</span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOJAS -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">🍃</span> Hojas</div>
+    <div class="section-body">
+
+      <div>
+        <div class="sub-label">Defoliación</div>
+        <div class="check-group">
+          <label class="check-item"><input type="radio" name="defoliacion" value="PARCIAL"><span>Parcial</span></label>
+          <label class="check-item"><input type="radio" name="defoliacion" value="TOTAL"><span>Total</span></label>
+          <label class="check-item"><input type="radio" name="defoliacion" value="NINGUNA"><span>Ninguna</span></label>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="coloracion"><span>Coloración anormal</span></label>
+        <label class="check-item"><input type="checkbox" id="enfermedades"><span>Síntomas de enfermedades</span></label>
+        <label class="check-item"><input type="checkbox" id="manchas"><span>Con manchas foliares</span></label>
+        <label class="check-item"><input type="checkbox" id="insectos"><span>Signos de insectos</span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECOMENDACIONES -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">✅</span> Recomendaciones del Inspector</div>
+    <div class="section-body">
+
+      <div class="sub-label">A – Objetivos de la poda</div>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="recReducRiesgo"><span>Reducción de riesgo</span></label>
+        <label class="check-item"><input type="checkbox" id="recElimInterf"><span>Eliminar interferencias</span></label>
+        <label class="check-item"><input type="checkbox" id="recAdecSitio"><span>Adecuación al sitio</span></label>
+        <label class="check-item"><input type="checkbox" id="recRegEstruc"><span>Regulación de estructura</span></label>
+      </div>
+
+      <div class="sub-label">B – Tipos de poda</div>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="podaFormacion"><span>Formación</span></label>
+        <label class="check-item"><input type="checkbox" id="podaLimpieza"><span>Limpieza</span></label>
+        <label class="check-item"><input type="checkbox" id="podaAclareo"><span>Aclareo</span></label>
+        <label class="check-item"><input type="checkbox" id="podaRefaldado"><span>Refaldado</span></label>
+        <label class="check-item"><input type="checkbox" id="podaTerciado"><span>Terciado</span></label>
+      </div>
+
+      <div class="sub-label">C – Corte de raíces</div>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="corteSuperficial"><span>Superficial</span></label>
+        <label class="check-item"><input type="checkbox" id="corteProfundo"><span>Profundo</span></label>
+      </div>
+
+      <div class="sub-label">Otras recomendaciones</div>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="recFitosanitario"><span>D – Tratamiento fitosanitario</span></label>
+        <label class="check-item"><input type="checkbox" id="recTrasplante"><span>E – Trasplante</span></label>
+        <label class="check-item"><input type="checkbox" id="recExtraccion"><span>F – Extracción</span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBSERVACIONES -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">📝</span> Observaciones</div>
+    <div class="section-body">
+      <div class="field-group">
+        <label>Observaciones del inspector</label>
+        <textarea id="observaciones" placeholder="Ingrese observaciones adicionales..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">👤</span> Inspector de Arbolado</div>
+    <div class="section-body">
+      <div class="row-2">
+        <div class="field-group">
+          <label>Nombre y apellido</label>
+          <input type="text" id="inspectorNombre" placeholder="Nombre completo">
+        </div>
+        <div class="field-group">
+          <label>D.N.I.</label>
+          <input type="text" id="inspectorDni" placeholder="00.000.000">
+        </div>
+      </div>
+
+      <div class="sub-label">Firma digital</div>
+      <div class="sig-wrap" id="sigWrap">
+        <canvas id="sigCanvas"></canvas>
+        <div class="sig-placeholder" id="sigPlaceholder">✍️ Firme aquí con el dedo o mouse</div>
+      </div>
+      <div class="sig-actions">
+        <button class="btn btn-clear" onclick="clearSignature()">🗑 Borrar firma</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOTO -->
+  <div class="section-card">
+    <div class="section-header"><span class="icon">📸</span> Registro Fotográfico</div>
+    <div class="section-body">
+      <div class="field-group">
+        <label>N° de Informe</label>
+        <input type="text" id="nroInforme" placeholder="Número de informe">
+      </div>
+      <div class="img-upload-area" id="uploadArea">
+        <input type="file" id="fotoInput" accept="image/*" capture="environment" onchange="handleImage(event)">
+        <div class="img-upload-icon">📷</div>
+        <div class="img-upload-text">Tomar foto o seleccionar imagen</div>
+        <div class="img-upload-sub">JPG, PNG o HEIC · La imagen se ajustará automáticamente</div>
+      </div>
+      <img id="imgPreview" class="img-preview" alt="Vista previa del árbol">
+    </div>
+  </div>
+
+  <!-- ACCIONES -->
+  <div class="action-bar">
+    <button class="btn btn-reset" onclick="resetForm()">🔄 Limpiar formulario</button>
+    <button class="btn btn-primary" onclick="generatePDF()">⬇ Descargar PDF</button>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// SIGNATURE PAD
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById('sigCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let hasSig = false;
+
+function resizeCanvas() {
+  const wrap = document.getElementById('sigWrap');
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth;
+  const h = 160;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = '#1C2B1A';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  if (e.touches) {
+    return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top };
+  }
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+canvas.addEventListener('mousedown', e => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+canvas.addEventListener('mousemove', e => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); hasSig = true; hidePlaceholder(); });
+canvas.addEventListener('mouseup', () => drawing = false);
+canvas.addEventListener('mouseleave', () => drawing = false);
+
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); hasSig = true; hidePlaceholder(); }, { passive: false });
+canvas.addEventListener('touchend', () => drawing = false);
+
+function hidePlaceholder() { document.getElementById('sigPlaceholder').style.display = 'none'; }
+function clearSignature() {
+  const dpr = window.devicePixelRatio || 1;
+  ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+  hasSig = false;
+  document.getElementById('sigPlaceholder').style.display = '';
+  showToast('Firma borrada');
+}
+
+// ═══════════════════════════════════════════════
+// IMAGE HANDLING
+// ═══════════════════════════════════════════════
+let fotoDataURL = null;
+
+function handleImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fotoDataURL = e.target.result;
+    const preview = document.getElementById('imgPreview');
+    preview.src = fotoDataURL;
+    preview.style.display = 'block';
+    document.querySelector('.img-upload-text').textContent = '✅ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════════
+// PROGRESS
+// ═══════════════════════════════════════════════
+const requiredFields = ['fecha','especie','calle','nref','altura','dap'];
+function updateProgress() {
+  let filled = requiredFields.filter(id => {
+    const el = document.getElementById(id);
+    return el && el.value.trim() !== '';
+  }).length;
+  const pct = Math.round((filled / requiredFields.length) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+document.querySelectorAll('input, select, textarea').forEach(el => el.addEventListener('input', updateProgress));
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+const v = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+const c = id => { const el = document.getElementById(id); return el ? el.checked : false; };
+const r = name => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; };
+const TEMPLATE_PDF_URL = 'PLANILLA INSPECCION -EXTRACCION-.pdf';
+const DEBUG_PDF_LAYOUT = false;
+const CALIBRATION_STORAGE_KEY = 'arboladoPdfCalibration';
+
+function mm(value) {
+  return value * 72 / 25.4;
+}
+
+function rectFromSpec(spec, pageLayout = {}) {
+  const override = spec.key && pageLayout.overrides ? pageLayout.overrides[spec.key] || {} : {};
+
+  return {
+    x: (spec.x || 0) + (override.x || 0),
+    y: (spec.y || 0) + (override.y || 0),
+    width: (spec.width || 0) + (override.width || 0),
+    height: (spec.height || 0) + (override.height || 0),
+  };
+}
+
+function resolveSpecValue(spec) {
+  if (!spec.source) return '';
+  if (spec.sourceType === 'checkbox') return c(spec.source);
+  if (spec.sourceType === 'radio') return r(spec.source);
+  return v(spec.source);
+}
+
+function isSpecSelected(spec) {
+  const value = resolveSpecValue(spec);
+  if (spec.sourceType === 'checkbox') return Boolean(value);
+  if (spec.equals !== undefined) return value === spec.equals;
+  return Boolean(value);
+}
+
+function fitTextSize(text, font, maxWidthPt, initialSize, minSize = 7.2) {
+  let size = initialSize;
+  while (size > minSize && font.widthOfTextAtSize(text, size) > maxWidthPt) size -= 0.2;
+  return size;
+}
+
+function wrapTextToWidth(text, font, size, maxWidthPt) {
+  const paragraphs = String(text).split(/\n+/);
+  const lines = [];
+
+  paragraphs.forEach((paragraph, paragraphIndex) => {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      lines.push('');
+      return;
+    }
+
+    let current = '';
+    words.forEach(word => {
+      const candidate = current ? `${current} ${word}` : word;
+      if (font.widthOfTextAtSize(candidate, size) <= maxWidthPt) {
+        current = candidate;
+      } else {
+        if (current) lines.push(current);
+        current = word;
+      }
+    });
+
+    if (current) lines.push(current);
+    if (paragraphIndex < paragraphs.length - 1) lines.push('');
+  });
+
+  return lines;
+}
+
+function drawDebugRect(page, rect) {
+  if (!DEBUG_PDF_LAYOUT) return;
+  page.drawRectangle({
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height,
+    borderColor: PDFLib.rgb(1, 0, 0),
+    borderWidth: 0.5,
+    opacity: 0.4,
+  });
+}
+
+function baselineToTextY(baseline, size, descentRatio = 0.22) {
+  return baseline - size * descentRatio;
+}
+
+function drawTextOnLine(page, spec, pageLayout, fonts, color) {
+  const rawValue = spec.value !== undefined ? spec.value : resolveSpecValue(spec);
+  const text = String(rawValue || '').trim();
+  if (!text) return;
+
+  const font = fonts[spec.font || 'regular'];
+  const override = spec.key && pageLayout.overrides ? pageLayout.overrides[spec.key] || {} : {};
+  const x1 = spec.x1 + (override.x1 || 0);
+  const x2 = spec.x2 + (override.x2 || 0);
+  const baseline = spec.baseline + (override.baseline || 0);
+  const width = x2 - x1;
+  const size = fitTextSize(text, font, width, spec.size || 10, spec.minSize || 7.2);
+  const textWidth = font.widthOfTextAtSize(text, size);
+  let x = x1 + (spec.paddingLeft || 0);
+
+  if (spec.align === 'center') x = x1 + Math.max(0, (width - textWidth) / 2);
+  if (spec.align === 'right') x = x2 - textWidth - (spec.paddingRight || 0);
+
+  page.drawText(text, {
+    x: x + (override.dx || 0),
+    y: baselineToTextY(baseline, size, spec.descentRatio || 0.22) + (override.dy || 0),
+    size,
+    font,
+    color,
+  });
+
+  drawDebugRect(page, {
+    x: x1,
+    y: baseline - 8,
+    width,
+    height: 16,
+  });
+}
+
+function drawTextOnBaselines(page, spec, pageLayout, fonts, color) {
+  const text = String(resolveSpecValue(spec) || '').trim();
+  if (!text) return;
+
+  const font = fonts[spec.font || 'regular'];
+  const override = spec.key && pageLayout.overrides ? pageLayout.overrides[spec.key] || {} : {};
+  const x1 = spec.x1 + (override.x1 || 0);
+  const x2 = spec.x2 + (override.x2 || 0);
+  const lines = wrapTextToWidth(text, font, spec.size || 10, x2 - x1).slice(0, spec.baselines.length);
+
+  lines.forEach((line, index) => {
+    page.drawText(line, {
+      x: x1 + (override.dx || 0),
+      y: baselineToTextY(spec.baselines[index] + (override.baseline || 0), spec.size || 10, spec.descentRatio || 0.22) + (override.dy || 0),
+      size: spec.size || 10,
+      font,
+      color,
+    });
+  });
+
+  drawDebugRect(page, {
+    x: x1,
+    y: spec.baselines[spec.baselines.length - 1] - 8,
+    width: x2 - x1,
+    height: spec.baselines[0] - spec.baselines[spec.baselines.length - 1] + 16,
+  });
+}
+
+function drawCheckboxMark(page, spec, pageLayout, color) {
+  if (!isSpecSelected(spec)) return;
+
+  const rect = rectFromSpec(spec, pageLayout);
+  const inset = spec.inset ?? Math.min(rect.width, rect.height) * 0.24;
+  const thickness = spec.lineWidth || 0.95;
+
+  page.drawLine({
+    start: { x: rect.x + inset, y: rect.y + inset },
+    end: { x: rect.x + rect.width - inset, y: rect.y + rect.height - inset },
+    thickness,
+    color,
+    opacity: 0.95,
+  });
+  page.drawLine({
+    start: { x: rect.x + inset, y: rect.y + rect.height - inset },
+    end: { x: rect.x + rect.width - inset, y: rect.y + inset },
+    thickness,
+    color,
+    opacity: 0.95,
+  });
+
+  drawDebugRect(page, rect);
+}
+
+function drawUnderlineMark(page, spec, pageLayout, color) {
+  if (!isSpecSelected(spec)) return;
+
+  const override = spec.key && pageLayout.overrides ? pageLayout.overrides[spec.key] || {} : {};
+  const x1 = spec.x1 + (override.x1 || 0);
+  const x2 = spec.x2 + (override.x2 || 0);
+  const y = (spec.y || 0) + (override.y || 0);
+
+  page.drawLine({
+    start: { x: x1, y },
+    end: { x: x2, y },
+    thickness: spec.lineWidth || 1,
+    color,
+    opacity: 0.95,
+  });
+
+  drawDebugRect(page, { x: x1, y: y - 3, width: x2 - x1, height: 6 });
+}
+
+function drawImageContain(page, image, spec, pageLayout) {
+  const rect = rectFromSpec(spec, pageLayout);
+  const padding = spec.padding || 0;
+  const innerWidth = Math.max(0, rect.width - padding * 2);
+  const innerHeight = Math.max(0, rect.height - padding * 2);
+  const scale = Math.min(innerWidth / image.width, innerHeight / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+
+  page.drawImage(image, {
+    x: rect.x + padding + (innerWidth - width) / 2,
+    y: rect.y + padding + (innerHeight - height) / 2,
+    width,
+    height,
+  });
+
+  drawDebugRect(page, rect);
+}
+
+function mergeCalibrationOverrides(baseLayout, overrides = {}) {
+  if (!overrides || typeof overrides !== 'object') return baseLayout;
+
+  return {
+    ...baseLayout,
+    page1: {
+      ...baseLayout.page1,
+      ...(overrides.page1 || {}),
+      overrides: {
+        ...(baseLayout.page1.overrides || {}),
+        ...((overrides.page1 && overrides.page1.overrides) || {}),
+      },
+    },
+    page2: {
+      ...baseLayout.page2,
+      ...(overrides.page2 || {}),
+      overrides: {
+        ...(baseLayout.page2.overrides || {}),
+        ...((overrides.page2 && overrides.page2.overrides) || {}),
+      },
+    },
+  };
+}
+
+function loadCalibrationOverrides() {
+  try {
+    const raw = window.localStorage.getItem(CALIBRATION_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+const PDF_LAYOUT = {
+  page1: {
+    overrides: {
+      fecha: { y: 28 },
+      aviso: { y: 28 },
+      arme: { y: 28 },
+      especie: { baseline: 4 },
+      calle_p1: { baseline: 28 },
+      nref_p1: { baseline: 8 },
+      altura: { baseline: 4 },
+      dap: { baseline: 4 },
+      cavLong: { baseline: 4 },
+      espPared: { baseline: 4 },
+      levantaVereda: { baseline: 4 },
+      observaciones: { baseline: 4 },
+      inspectorNombre: { baseline: 3 },
+      inspectorDni: { baseline: 3 }
+    },
+    metaFields: [
+      { key: 'fecha', name: 'Fecha', x: 352.5, y: 776.0, width: 193.8, height: 14.5, fontSize: 10 },
+      { key: 'aviso', name: 'Aviso', x: 349.9, y: 758.2, width: 196.4, height: 14.5, fontSize: 10 },
+      { key: 'arme', name: 'ARME', x: 353.8, y: 740.4, width: 192.1, height: 14.5, fontSize: 10 }
+    ],
+    textLines: [
+      { key: 'especie', source: 'especie', x1: 291.8, x2: 562.4, baseline: 744.8, size: 10.2 },
+      { key: 'calle_p1', source: 'calle', x1: 53.6, x2: 219.5, baseline: 700, size: 10 },
+      { key: 'nref_p1', source: 'nref', x1: 281.6, x2: 382.0, baseline: 718.8, size: 10 },
+      { key: 'altura', source: 'altura', x1: 72.908, x2: 138.383, baseline: 676.685, size: 9.7 },
+      { key: 'dap', source: 'dap', x1: 207.512, x2: 272.987, baseline: 676.685, size: 9.7 },
+      { key: 'cavLong', source: 'cavLong', x1: 156.237, x2: 210.557, baseline: 541.477, size: 9.2 },
+      { key: 'espPared', source: 'espPared', x1: 351.413, x2: 405.733, baseline: 541.477, size: 9.2 },
+      { key: 'levantaVereda', source: 'levantaVereda', x1: 286.002, x2: 347.112, baseline: 515.692, size: 9.2 },
+      { key: 'inspectorNombre', source: 'inspectorNombre', x1: 43.8, x2: 235.9, baseline: 31.4, size: 10, align: 'center' },
+      { key: 'inspectorDni', source: 'inspectorDni', x1: 260.4, x2: 387.0, baseline: 31.4, size: 10, align: 'center' }
+    ],
+    multilineLines: [
+      {
+        key: 'observaciones',
+        source: 'observaciones',
+        x1: 35.7,
+        x2: 557.0,
+        baselines: [232.1, 215.9, 199.7, 183.5, 167.3, 151.1, 134.9, 118.7, 102.5, 86.3],
+        size: 9.8,
+      }
+    ],
+    optionMarks: [
+      { key: 'inclinacion_si', source: 'inclinacion', equals: 'SI', x1: 367.613, x2: 376.073, y: 674.9 },
+      { key: 'inclinacion_no', source: 'inclinacion', equals: 'NO', x1: 386.243, x2: 399.959, y: 674.9 },
+      { key: 'fisuras_si', source: 'fisuras', equals: 'SI', x1: 525.708, x2: 534.168, y: 513.9 },
+      { key: 'fisuras_no', source: 'fisuras', equals: 'NO', x1: 544.338, x2: 558.054, y: 513.9 },
+      { key: 'defoliacion_parcial', source: 'defoliacion', sourceType: 'radio', equals: 'PARCIAL', x1: 158.279, x2: 196.295, y: 426.8 },
+      { key: 'defoliacion_total', source: 'defoliacion', sourceType: 'radio', equals: 'TOTAL', x1: 208.346, x2: 236.111, y: 426.8 }
+    ],
+    checkboxes: [
+      { key: 'arbolSeco', source: 'arbolSeco', sourceType: 'checkbox', x: 456.0, y: 721.0, width: 14.1, height: 14.1 },
+      { key: 'arbolSemiseco', source: 'arbolSemiseco', sourceType: 'checkbox', x: 549.5, y: 721.0, width: 14.1, height: 14.1 },
+      { key: 'gradoMayor40', source: 'gradoInclinacion', sourceType: 'radio', equals: 'Mayor a 40°', x: 473.9, y: 673.0, width: 14.1, height: 14.1 },
+      { key: 'gradoMenor40', source: 'gradoInclinacion', sourceType: 'radio', equals: 'Menor a 40°', x: 549.4, y: 673.0, width: 14.1, height: 14.1 },
+      { key: 'oriCalle', source: 'oriCalle', sourceType: 'checkbox', x: 247.0, y: 650.7, width: 14.1, height: 14.1 },
+      { key: 'oriPropiedad', source: 'oriPropiedad', sourceType: 'checkbox', x: 376.8, y: 650.7, width: 14.1, height: 14.1 },
+      { key: 'oriVereda', source: 'oriVereda', sourceType: 'checkbox', x: 549.4, y: 650.7, width: 14.1, height: 14.1 },
+      { key: 'copaDesbalanceada', source: 'copaDesbalanceada', sourceType: 'checkbox', x: 157.9, y: 630.5, width: 14.1, height: 14.1 },
+      { key: 'copaDescopado', source: 'copaDescopado', sourceType: 'checkbox', x: 250.2, y: 630.5, width: 14.1, height: 14.1 },
+      { key: 'copaDescopBrot', source: 'copaDescopBrot', sourceType: 'checkbox', x: 396.5, y: 630.5, width: 14.1, height: 14.1 },
+      { key: 'descortezamiento', source: 'descortezamiento', sourceType: 'checkbox', x: 520.7, y: 602.5, width: 14.1, height: 14.1 },
+      { key: 'fructificaciones', source: 'fructificaciones', sourceType: 'checkbox', x: 545.2, y: 581.3, width: 14.1, height: 14.1 },
+      { key: 'codominanciasFuste', source: 'codominanciasFuste', sourceType: 'checkbox', x: 509.3, y: 559.0, width: 14.1, height: 14.1 },
+      { key: 'chorreados', source: 'chorreados', sourceType: 'checkbox', x: 498.7, y: 539.2, width: 14.1, height: 14.1 },
+      { key: 'cavPeqBasal', source: 'cavPeqBasal', sourceType: 'checkbox', x: 247.05, y: 581.5, width: 11.0, height: 11.0, inset: 2.2 },
+      { key: 'cavPeqMedia', source: 'cavPeqMedia', sourceType: 'checkbox', x: 308.60, y: 581.5, width: 11.0, height: 11.0, inset: 2.2 },
+      { key: 'cavPeqAlta', source: 'cavPeqAlta', sourceType: 'checkbox', x: 370.15, y: 581.5, width: 11.0, height: 11.0, inset: 2.2 },
+      { key: 'cavGrandBasal', source: 'cavGrandBasal', sourceType: 'checkbox', x: 247.05, y: 565.5, width: 11.0, height: 11.0, inset: 2.2 },
+      { key: 'cavGrandMedia', source: 'cavGrandMedia', sourceType: 'checkbox', x: 308.60, y: 565.5, width: 11.0, height: 11.0, inset: 2.2 },
+      { key: 'cavGrandAlta', source: 'cavGrandAlta', sourceType: 'checkbox', x: 370.15, y: 565.5, width: 11.0, height: 11.0, inset: 2.2 },
+      { key: 'raicesExpuestas', source: 'raicesExpuestas', sourceType: 'checkbox', x: 145.6, y: 512.2, width: 14.1, height: 14.1 },
+      { key: 'ramaQuebradasFis', source: 'ramaQuebradasFis', sourceType: 'checkbox', x: 199.3, y: 485.4, width: 14.1, height: 14.1 },
+      { key: 'ramaExcesivas', source: 'ramaExcesivas', sourceType: 'checkbox', x: 385.3, y: 486.7, width: 14.1, height: 14.1 },
+      { key: 'ramaBajas', source: 'ramaBajas', sourceType: 'checkbox', x: 503.8, y: 487.5, width: 14.1, height: 14.1 },
+      { key: 'ramaSecas', source: 'ramaSecas', sourceType: 'checkbox', x: 221.2, y: 469.5, width: 14.1, height: 14.1 },
+      { key: 'ramaInvasion', source: 'ramaInvasion', sourceType: 'checkbox', x: 404.5, y: 470.3, width: 14.1, height: 14.1 },
+      { key: 'ramaTocones', source: 'ramaTocones', sourceType: 'checkbox', x: 512.8, y: 469.5, width: 14.1, height: 14.1 },
+      { key: 'ramaCavidades', source: 'ramaCavidades', sourceType: 'checkbox', x: 245.7, y: 454.0, width: 14.1, height: 14.1 },
+      { key: 'ramaMalAngulo', source: 'ramaMalAngulo', sourceType: 'checkbox', x: 412.4, y: 452.5, width: 14.1, height: 14.1 },
+      { key: 'ramaCodominantes', source: 'ramaCodominantes', sourceType: 'checkbox', x: 537.8, y: 452.5, width: 14.1, height: 14.1 },
+      { key: 'coloracion', source: 'coloracion', sourceType: 'checkbox', x: 360.1, y: 426.5, width: 14.1, height: 14.1 },
+      { key: 'manchas', source: 'manchas', sourceType: 'checkbox', x: 527.3, y: 427.1, width: 14.1, height: 14.1 },
+      { key: 'enfermedades', source: 'enfermedades', sourceType: 'checkbox', x: 391.5, y: 409.5, width: 14.1, height: 14.1 },
+      { key: 'insectos', source: 'insectos', sourceType: 'checkbox', x: 515.9, y: 409.8, width: 14.1, height: 14.1 },
+      { key: 'recReducRiesgo', source: 'recReducRiesgo', sourceType: 'checkbox', x: 122.6, y: 341.9, width: 14.1, height: 14.1 },
+      { key: 'recElimInterf', source: 'recElimInterf', sourceType: 'checkbox', x: 261.6, y: 341.9, width: 14.1, height: 14.1 },
+      { key: 'recAdecSitio', source: 'recAdecSitio', sourceType: 'checkbox', x: 385.3, y: 341.9, width: 14.1, height: 14.1 },
+      { key: 'recRegEstruc', source: 'recRegEstruc', sourceType: 'checkbox', x: 537.8, y: 341.9, width: 14.1, height: 14.1 },
+      { key: 'podaFormacion', source: 'podaFormacion', sourceType: 'checkbox', x: 193.7, y: 320.7, width: 14.1, height: 14.1 },
+      { key: 'podaLimpieza', source: 'podaLimpieza', sourceType: 'checkbox', x: 280.8, y: 320.7, width: 14.1, height: 14.1 },
+      { key: 'podaAclareo', source: 'podaAclareo', sourceType: 'checkbox', x: 361.7, y: 320.7, width: 14.1, height: 14.1 },
+      { key: 'podaRefaldado', source: 'podaRefaldado', sourceType: 'checkbox', x: 455.1, y: 319.5, width: 14.1, height: 14.1 },
+      { key: 'podaTerciado', source: 'podaTerciado', sourceType: 'checkbox', x: 541.4, y: 319.5, width: 14.1, height: 14.1 },
+      { key: 'corteSuperficial', source: 'corteSuperficial', sourceType: 'checkbox', x: 227.2, y: 299.0, width: 14.1, height: 14.1 },
+      { key: 'corteProfundo', source: 'corteProfundo', sourceType: 'checkbox', x: 316.7, y: 299.0, width: 14.1, height: 14.1 },
+      { key: 'recFitosanitario', source: 'recFitosanitario', sourceType: 'checkbox', x: 193.7, y: 277.4, width: 14.1, height: 14.1 },
+      { key: 'recTrasplante', source: 'recTrasplante', sourceType: 'checkbox', x: 361.7, y: 277.4, width: 14.1, height: 14.1 },
+      { key: 'recExtraccion', source: 'recExtraccion', sourceType: 'checkbox', x: 531.5, y: 277.4, width: 14.1, height: 14.1 }
+    ],
+    signature: { key: 'signature', x: 417.0, y: 36.0, width: 126.6, height: 34.0, padding: 3 }
+  },
+  page2: {
+    overrides: {
+      fecha: { y: 28 },
+      aviso: { y: 28 },
+      arme: { y: 28 },
+      nroInforme: { baseline: 4 },
+      calle_p2: { baseline: 28 },
+      nref_p2: { baseline: 8 }
+    },
+    metaFields: [
+      { key: 'fecha', name: 'Fecha', x: 352.5, y: 776.0, width: 193.8, height: 14.5, fontSize: 10 },
+      { key: 'aviso', name: 'Aviso', x: 349.9, y: 758.2, width: 196.4, height: 14.5, fontSize: 10 },
+      { key: 'arme', name: 'ARME', x: 353.8, y: 740.4, width: 192.1, height: 14.5, fontSize: 10 }
+    ],
+    textLines: [
+      { key: 'nroInforme', source: 'nroInforme', x1: 265.9, x2: 536.5, baseline: 744.8, size: 10.2 },
+      { key: 'calle_p2', source: 'calle', x1: 53.6, x2: 324.2, baseline: 700.7, size: 10 },
+      { key: 'nref_p2', source: 'nref', x1: 386.3, x2: 534.7, baseline: 720.7, size: 10 }
+    ],
+    multilineLines: [],
+    optionMarks: [],
+    checkboxes: [],
+    photo: { key: 'photo', x: 28.8, y: 44.2, width: 537.7, height: 663.2, padding: 6 }
+  }
+};
+
+window.arboladoPdfCalibration = {
+  current() {
+    return mergeCalibrationOverrides(PDF_LAYOUT, loadCalibrationOverrides());
+  },
+  set(overrides) {
+    window.localStorage.setItem(CALIBRATION_STORAGE_KEY, JSON.stringify(overrides || {}));
+  },
+  clear() {
+    window.localStorage.removeItem(CALIBRATION_STORAGE_KEY);
+  }
+};
+
+function dataUrlToUint8Array(dataUrl) {
+  const base64 = dataUrl.split(',')[1] || '';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function normalizeImageToJpeg(dataUrl, quality = 0.92) {
+  return new Promise((resolve, reject) => {
+    if (!dataUrl) return resolve(null);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx2 = canvas.getContext('2d');
+      if (!ctx2) return reject(new Error('No se pudo preparar la imagen.'));
+      ctx2.fillStyle = '#ffffff';
+      ctx2.fillRect(0, 0, canvas.width, canvas.height);
+      ctx2.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => reject(new Error('No se pudo leer la imagen seleccionada.'));
+    img.src = dataUrl;
+  });
+}
+
+async function cargarPlantillaPDF() {
+  try {
+    const res = await fetch(encodeURI(TEMPLATE_PDF_URL));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return new Uint8Array(await res.arrayBuffer());
+  } catch (error) {
+    throw new Error('No se pudo abrir la plantilla PDF. Si abriste el HTML con file://, ejecutalo desde un servidor local o Live Server.');
+  }
+}
+
+function addEditableMetaField(field, page, spec, font, textColor) {
+  const rect = rectFromSpec(spec, { overrides: { [spec.key]: spec.override || {} } });
+  field.addToPage(page, {
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height,
+    font,
+    textColor,
+    borderWidth: 0,
+  });
+  field.setFontSize(spec.fontSize || 10);
+  return field;
+}
+
+// ═══════════════════════════════════════════════
+// PDF GENERATION
+// ═══════════════════════════════════════════════
+async function generatePDF() {
+  const btn = document.querySelector('.btn-primary');
+  if (btn) btn.disabled = true;
+
+  try {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const layout = mergeCalibrationOverrides(PDF_LAYOUT, loadCalibrationOverrides());
+    const templateBytes = await cargarPlantillaPDF();
+    const pdfDoc = await PDFDocument.create();
+    const [tplPage1, tplPage2] = await pdfDoc.embedPdf(templateBytes, [0, 1]);
+    const page1 = pdfDoc.addPage([tplPage1.width, tplPage1.height]);
+    const page2 = pdfDoc.addPage([tplPage2.width, tplPage2.height]);
+    page1.drawPage(tplPage1, { x: 0, y: 0, width: tplPage1.width, height: tplPage1.height });
+    page2.drawPage(tplPage2, { x: 0, y: 0, width: tplPage2.width, height: tplPage2.height });
+
+    const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const textColor = rgb(0.12, 0.20, 0.27);
+    const markColor = rgb(0.12, 0.20, 0.27);
+    const form = pdfDoc.getForm();
+    const fonts = { regular: fontRegular, bold: fontBold };
+
+    let fecha = v('fecha');
+    if (fecha) {
+      const [yy, mm2, dd] = fecha.split('-');
+      fecha = `${dd}/${mm2}/${yy}`;
+    }
+    const aviso = v('aviso');
+    const arme = v('arme');
+
+    const fechaField = form.createTextField('Fecha');
+    fechaField.setText(fecha || '');
+    addEditableMetaField(fechaField, page1, { ...layout.page1.metaFields[0], override: layout.page1.overrides.fecha || {} }, fontRegular, textColor);
+    addEditableMetaField(fechaField, page2, { ...layout.page2.metaFields[0], override: layout.page2.overrides.fecha || {} }, fontRegular, textColor);
+
+    const avisoField = form.createTextField('Aviso');
+    avisoField.setText(aviso || '');
+    addEditableMetaField(avisoField, page1, { ...layout.page1.metaFields[1], override: layout.page1.overrides.aviso || {} }, fontRegular, textColor);
+    addEditableMetaField(avisoField, page2, { ...layout.page2.metaFields[1], override: layout.page2.overrides.aviso || {} }, fontRegular, textColor);
+
+    const armeField = form.createTextField('ARME');
+    armeField.setText(arme || '');
+    addEditableMetaField(armeField, page1, { ...layout.page1.metaFields[2], override: layout.page1.overrides.arme || {} }, fontRegular, textColor);
+    addEditableMetaField(armeField, page2, { ...layout.page2.metaFields[2], override: layout.page2.overrides.arme || {} }, fontRegular, textColor);
+
+    layout.page1.textLines.forEach(spec => drawTextOnLine(page1, spec, layout.page1, fonts, textColor));
+    layout.page1.multilineLines.forEach(spec => drawTextOnBaselines(page1, spec, layout.page1, fonts, textColor));
+    layout.page1.optionMarks.forEach(spec => drawUnderlineMark(page1, spec, layout.page1, markColor));
+    layout.page1.checkboxes.forEach(spec => drawCheckboxMark(page1, spec, layout.page1, markColor));
+
+    // Signature
+    if (hasSig) {
+      const sigBytes = dataUrlToUint8Array(canvas.toDataURL('image/png'));
+      const sigImage = await pdfDoc.embedPng(sigBytes);
+      drawImageContain(page1, sigImage, layout.page1.signature, layout.page1);
+    }
+
+    layout.page2.textLines.forEach(spec => drawTextOnLine(page2, spec, layout.page2, fonts, textColor));
+
+    if (fotoDataURL) {
+      const jpegDataUrl = await normalizeImageToJpeg(fotoDataURL);
+      const image = await pdfDoc.embedJpg(dataUrlToUint8Array(jpegDataUrl));
+      drawImageContain(page2, image, layout.page2.photo, layout.page2);
+    }
+
+    form.updateFieldAppearances(fontRegular);
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Planilla_Arbol_${(v('calle') || 'sin_calle').replace(/\s+/g, '_')}_${(v('nref') || '').replace(/\s+/g, '')}.pdf`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast('✅ PDF generado con la plantilla original');
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || '❌ Error al generar el PDF');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// RESET FORM
+// ═══════════════════════════════════════════════
+function resetForm() {
+  if (!confirm('¿Limpiar todos los datos del formulario?')) return;
+  document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea, select').forEach(el => el.value = '');
+  document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(el => el.checked = false);
+  clearSignature();
+  fotoDataURL = null;
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('imgPreview').src = '';
+  document.querySelector('.img-upload-text').textContent = 'Tomar foto o seleccionar imagen';
+  document.getElementById('fotoInput').value = '';
+  document.getElementById('progressFill').style.width = '0%';
+  showToast('Formulario limpiado');
+}
+</script>
+</body>
+</html>
