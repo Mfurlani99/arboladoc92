@@ -1,0 +1,19 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/planilla_inspeccion_arboles.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/PLANILLA%20INSPECCION%20-EXTRACCION-.pdf",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}
