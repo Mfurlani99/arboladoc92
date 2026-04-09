@@ -380,13 +380,28 @@
     background: #FAFCF9;
     padding: 20px;
     text-align: center;
-    cursor: pointer;
     transition: all 0.2s;
-    position: relative;
   }
   .img-upload-area:hover { border-color: var(--gcba-green-light); background: #F0F7F3; }
-  .img-upload-area input[type="file"] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  .img-upload-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 14px;
+  }
+  .img-upload-btn {
+    position: relative;
+    flex: 1 1 220px;
+    min-height: 44px;
+  }
+  .img-upload-btn input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
   }
   .img-upload-icon { font-size: 36px; margin-bottom: 8px; }
   .img-upload-text { font-size: 13px; color: var(--gcba-label); font-weight: 500; }
@@ -756,10 +771,19 @@
         <input type="text" id="nroInforme" placeholder="Número de informe">
       </div>
       <div class="img-upload-area" id="uploadArea">
-        <input type="file" id="fotoInput" accept="image/*" capture="environment" onchange="handleImage(event)">
         <div class="img-upload-icon">📷</div>
-        <div class="img-upload-text">Tomar foto o seleccionar imagen</div>
+        <div class="img-upload-text" id="imgUploadText">Todavía no cargaste una foto</div>
         <div class="img-upload-sub">JPG, PNG o HEIC · La imagen se ajustará automáticamente</div>
+        <div class="img-upload-actions">
+          <label class="btn btn-primary img-upload-btn">
+            <span>📸 Tomar foto</span>
+            <input type="file" id="fotoInputCamera" accept="image/*" capture="environment" onchange="handleImage(event)">
+          </label>
+          <label class="btn btn-reset img-upload-btn">
+            <span>🖼 Elegir de galería</span>
+            <input type="file" id="fotoInputGallery" accept="image/*" onchange="handleImage(event)">
+          </label>
+        </div>
       </div>
       <img id="imgPreview" class="img-preview" alt="Vista previa del árbol">
     </div>
@@ -843,7 +867,7 @@ function handleImage(event) {
     const preview = document.getElementById('imgPreview');
     preview.src = fotoDataURL;
     preview.style.display = 'block';
-    document.querySelector('.img-upload-text').textContent = '✅ ' + file.name;
+    document.getElementById('imgUploadText').textContent = '✅ ' + file.name;
   };
   reader.readAsDataURL(file);
 }
@@ -1415,8 +1439,9 @@ function resetForm() {
   fotoDataURL = null;
   document.getElementById('imgPreview').style.display = 'none';
   document.getElementById('imgPreview').src = '';
-  document.querySelector('.img-upload-text').textContent = 'Tomar foto o seleccionar imagen';
-  document.getElementById('fotoInput').value = '';
+  document.getElementById('imgUploadText').textContent = 'Todavía no cargaste una foto';
+  document.getElementById('fotoInputCamera').value = '';
+  document.getElementById('fotoInputGallery').value = '';
   document.getElementById('progressFill').style.width = '0%';
   showToast('Formulario limpiado');
 }
